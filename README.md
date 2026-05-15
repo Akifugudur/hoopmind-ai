@@ -1,257 +1,115 @@
-# 🏀 HoopMind AI — NBA Analytics Platform
+# HoopMind AI
 
-> An advanced ML-powered NBA analytics platform combining shot probability prediction, player similarity clustering, and interactive visualizations.
+NBA shot analytics and player similarity platform built with FastAPI, XGBoost, and React.
 
-[![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?logo=fastapi)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
-[![XGBoost](https://img.shields.io/badge/XGBoost-2.0-orange)](https://xgboost.readthedocs.io)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql)](https://postgresql.org)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docker.com)
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=github-actions)](/.github/workflows/ci.yml)
+I built this to get hands-on experience with ML pipelines end-to-end — from data generation and feature engineering to model training, REST API, and a live dashboard. The shot probability model compares Logistic Regression, Random Forest, and XGBoost, and uses SHAP to explain predictions.
 
 ---
 
-## Features
+## What it does
 
-**Machine Learning**
-- **Shot Make Probability** — XGBoost model trained on 60K+ shots with physics-inspired feature engineering. Outputs probability, shot quality rating, expected value, and SHAP-based feature importances.
-- **Player Similarity Engine** — K-Means clustering (6 archetypes) + cosine similarity on 15 statistical features with PCA visualization.
-- **Player Performance Prediction** — Contextual regression model using season averages, opponent defensive rating, home/away, rest days, and minutes projection.
-- **Team Win Probability** — Logistic model using net rating differential and home court advantage.
-- **Model Comparison** — Logistic Regression vs Random Forest vs XGBoost with Accuracy, ROC-AUC, Precision, Recall, F1 metrics.
-
-**Backend (FastAPI)**
-- RESTful API with OpenAPI docs at `/docs`
-- Endpoints: `/players`, `/teams`, `/shots`, `/games`, `/analytics/*`
-- Pagination, filtering, sorting on all collection endpoints
-- Pydantic v2 validation, structured error handling
-
-**Frontend (React)**
-- Dark mode SaaS dashboard — single-page, tab-based
-- NBA shot court visualization (SVG scatter plot)
-- Interactive shot probability predictor
-- Player radar charts, shot zone breakdowns
-- Player cluster PCA scatter plot
-- ML model performance comparison charts
-- League leaderboards and standings
-
-**Infrastructure**
-- Docker Compose (postgres + backend + frontend)
-- Alembic database migrations
-- GitHub Actions CI pipeline (lint + test + Docker build)
+- **Shot probability** — given shot distance, angle, defender distance, shot clock etc., predicts the likelihood of the shot going in
+- **Player similarity** — clusters players by statistical profile using K-Means, finds similar players via cosine similarity
+- **Player performance projection** — estimates per-game stats for a player based on matchup, rest days, home/away
+- **Shot chart** — court visualization of made/missed shots
+- **Model comparison** — accuracy, ROC-AUC, F1 across all three models
 
 ---
 
-## Architecture
+## Stack
 
-```
-hoopmind-ai/
-├── backend/
-│   ├── app/
-│   │   ├── main.py              # FastAPI app entrypoint
-│   │   ├── config.py            # Pydantic settings
-│   │   ├── database.py          # SQLAlchemy engine & session
-│   │   ├── models/              # ORM models (Team, Player, Game, Shot, AdvancedStats)
-│   │   ├── schemas/             # Pydantic request/response schemas
-│   │   ├── routes/              # API routers (players, teams, shots, games, analytics)
-│   │   └── ml/
-│   │       ├── shot_probability.py   # LR + RF + XGBoost training & inference
-│   │       ├── player_similarity.py  # K-Means + cosine similarity engine
-│   │       └── train_models.py       # Training script
-│   ├── data/
-│   │   ├── generate_data.py     # Realistic NBA data generator
-│   │   └── seed_db.py           # DB population script
-│   ├── alembic/                 # Database migrations
-│   ├── tests/                   # pytest test suite
-│   └── requirements.txt
-├── frontend/
-│   └── src/
-│       ├── App.js               # Full single-page dashboard
-│       ├── App.css              # Dark theme styles
-│       └── services/api.js      # Axios API client
-├── docker-compose.yml
-├── .env.example
-└── .github/workflows/ci.yml
-```
+- **Backend:** FastAPI, SQLAlchemy, PostgreSQL, Alembic
+- **ML:** XGBoost, scikit-learn, SHAP, pandas
+- **Frontend:** React, Recharts
+- **Infra:** Docker Compose, GitHub Actions
 
 ---
 
-## Quickstart
+## Running locally
 
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-
-### Run with Docker Compose (Recommended)
+You need Docker Desktop installed.
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/YOUR_USERNAME/hoopmind-ai.git
+git clone https://github.com/Akifugudur/hoopmind-ai.git
 cd hoopmind-ai
-
-# 2. Copy environment file
 cp .env.example .env
-
-# 3. Start everything (postgres + backend + frontend)
 docker compose up --build
 ```
 
-On first start, Docker will automatically:
-1. Start PostgreSQL
-2. Run Alembic migrations
-3. Seed the database with 30 NBA teams, 40 players, 300 games, 60K+ shots
-4. Train all ML models (LR + RF + XGBoost + similarity engine)
-5. Start the FastAPI server
-6. Start the React frontend
+First run takes a while — it seeds the DB with ~60K synthetic shots and trains all three models. After that:
 
-| Service  | URL |
-|----------|-----|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:8000 |
-| API Docs | http://localhost:8000/docs |
+- Frontend: http://localhost:3000
+- API: http://localhost:8000
+- Swagger docs: http://localhost:8000/docs
+
+Subsequent runs are fast because Docker caches the layers.
 
 ---
 
-### Run Locally (Without Docker)
+## Project structure
 
-**Backend:**
-```bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set up environment
-cp ../.env.example .env
-# Edit .env — set POSTGRES_HOST=localhost
-
-# Run migrations
-alembic upgrade head
-
-# Seed database
-python data/seed_db.py
-
-# Train ML models
-python -m app.ml.train_models
-
-# Start API server
-uvicorn app.main:app --reload --port 8000
 ```
+backend/
+  app/
+    models/       # SQLAlchemy ORM (Team, Player, Game, Shot)
+    schemas/      # Pydantic request/response models
+    routes/       # API endpoints
+    ml/           # Model training and inference
+  data/           # Data generator + DB seeder
+  alembic/        # Migrations
 
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm start
-# Opens http://localhost:3000
+frontend/
+  src/
+    App.js        # Single-page dashboard
+    services/     # API client
 ```
 
 ---
 
-## ML Models
+## Data
 
-### Shot Probability
-Predicts the probability of a shot going in based on:
+I used synthetic data generated to match real NBA shot distributions — distance decay, corner three bias, defender distance effects, shot clock pressure etc. are all modeled. Not real NBA data, but the distributions are realistic enough to train meaningful models on.
 
-| Feature | Importance |
-|---------|-----------|
-| Shot Distance | ~28% |
-| Defender Distance | ~18% |
-| Shot Type (encoded) | ~14% |
-| Distance × Defender interaction | ~11% |
-| Shot Clock | ~8% |
-| Catch & Shoot | ~6% |
-| Quarter / Clutch Time | ~5% |
-| ... | ... |
+If you want to swap in real data, the seed script is in `backend/data/seed_db.py`.
 
-**Model Performance** (approximate, varies with random seed):
+---
+
+## Model results
+
+Approximate metrics on the test split (20%):
 
 | Model | Accuracy | ROC-AUC | F1 |
-|-------|----------|---------|-----|
+|---|---|---|---|
 | Logistic Regression | ~65% | ~0.70 | ~0.62 |
 | Random Forest | ~66% | ~0.71 | ~0.63 |
-| **XGBoost** | **~67%** | **~0.73** | **~0.64** |
+| XGBoost | ~67% | ~0.73 | ~0.64 |
 
-### Player Similarity
-6 player archetypes identified via K-Means:
-- Scoring Guard
-- Playmaking Big
-- 3-and-D Wing
-- Point Guard
-- Interior Presence
-- Versatile Forward
+XGBoost wins but the gap is small. The biggest predictors are shot distance, defender distance, and their interaction term.
 
 ---
 
-## API Reference
+## API
 
 ```
-GET  /                                  # Health check
-GET  /docs                              # OpenAPI interactive docs
+GET  /players/                     list players, filterable + paginated
+GET  /players/{id}/radar-stats     normalized skill ratings for radar chart
+GET  /players/{id}/shot-zones      FG% breakdown by court zone
 
-GET  /players/                          # List players (paginated, filterable)
-GET  /players/{id}                      # Player detail
-GET  /players/{id}/radar-stats          # Radar chart data
-GET  /players/{id}/shot-zones           # Shot zone breakdown
+GET  /shots/chart-data             shot coordinates for court visualization
+GET  /shots/league-summary         league-wide FG% by zone
 
-GET  /teams/                            # List teams
-GET  /teams/{id}                        # Team detail
-GET  /teams/{id}/roster                 # Team roster
-
-GET  /shots/chart-data                  # Shot coordinates for court chart
-GET  /shots/league-summary              # League FG% by zone
-
-POST /analytics/shot-probability        # Predict shot make probability
-POST /analytics/player-similarity       # Find similar players
-POST /analytics/player-performance      # Predict player game stats
-POST /analytics/win-probability         # Team win probability
-GET  /analytics/model-metrics           # ML model performance metrics
-GET  /analytics/leaderboard             # League leaderboards
+POST /analytics/shot-probability   predict shot make probability
+POST /analytics/player-similarity  find similar players
+POST /analytics/player-performance project next-game stats
+POST /analytics/win-probability    estimate team win probability
+GET  /analytics/model-metrics      training metrics for all models
+GET  /analytics/leaderboard        league stat leaders
 ```
 
 ---
 
-## Tech Stack
+## Notes
 
-| Layer | Technology |
-|-------|-----------|
-| **API** | Python 3.11, FastAPI, Uvicorn |
-| **ORM** | SQLAlchemy 2.0, Alembic |
-| **Database** | PostgreSQL 15 |
-| **Validation** | Pydantic v2 |
-| **ML** | Scikit-learn, XGBoost, SHAP, Pandas, NumPy |
-| **Frontend** | React 18, Recharts, Axios |
-| **Infra** | Docker, Docker Compose |
-| **CI/CD** | GitHub Actions |
-
----
-
-## Development
-
-```bash
-# Run tests
-cd backend && pytest tests/ -v
-
-# Lint
-flake8 app/ --max-line-length=120
-
-# Retrain models
-python -m app.ml.train_models
-
-# Generate new migration
-alembic revision --autogenerate -m "description"
-```
-
----
-
-## License
-
-MIT — free to use for portfolio, learning, and personal projects.
-
----
-
-*Built as a portfolio project demonstrating ML engineering, backend architecture, and data visualization skills.*
+- No real NBA data — everything is synthetic but statistically grounded
+- No auth, no Redis, no Celery — kept the scope focused
+- Models are saved as `.pkl` files in a Docker volume so they persist across restarts
